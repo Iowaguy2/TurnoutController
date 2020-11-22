@@ -3,22 +3,25 @@
 // The turnouts require a momentary 12vac on one of its two coils, seperate relays are used to provide the 12vac, 
 // the Nano drives 5v to turn on the relay. The Nano drives one of two LEDs associated with the turnout.
 
-const uint8_t TurnoutCount = 4;
+//YardBranch Differences: Since the Yard only needs to control two turnouts, changed pushbutton IO pins to eliminate
+//  using A6,7 which required pullups.
+//  Different LEDs are used, no common cathode, a two leaded bi-color LED, so one pin is source, the other a sink. 
+
+const uint8_t TurnoutCount = 2;
 const unsigned long CoilOnDelay = 500; //ms using delay()
 const uint8_t DebounceCount = 5;
 const uint8_t DebounceLimit = 15;
 const uint8_t DebounceDelay = 250;
-const int AnalogMidpoint = 512;
 const uint8_t Thru = 0;
 const uint8_t Diverge = 1;
 const uint8_t RelayOn = LOW;
 const uint8_t RelayOff = HIGH;
 
 // The following elements are in order (ie: [0]=first turnout, [3]=third turnout.)
-uint8_t PBInputs[] = {A7, A1, A2, A6};// using analog pins for inputs. NOTE: must use analogread() for a6, a7
-uint8_t CoilOutputs[4][2] = { {A0, 13 }, {2, 3}, {4, 5}, {6, 7} };
-uint8_t LEDOutputs[4][2] = { {8, 9 }, {10, 11}, {12, A3}, {A4, A5} };
-uint8_t OutputStates[] = {3,3,3,3}; // Maintains state of turnout.
+uint8_t PBInputs[] = {A5, A1};// using analog pins for inputs. NOTE: must use analogread() for a6, a7
+uint8_t CoilOutputs[2][2] = { {2, 3}, {4, 5} };
+uint8_t LEDOutputs[2][2] = { {8, 9 }, {10, 11} };
+uint8_t OutputStates[] = {3,3}; // Maintains state of turnout.
 
 void setup() {
   // put your setup code here, to run once:
@@ -50,12 +53,11 @@ for (uint8_t i = 0; i < TurnoutCount; i++){
 }//End setup()
 
 void loop() {
-  int pbValue = 1023;
+  int pbValue = 1;
   // put your main code here, to run repeatedly:
   for(uint8_t t = 0; t < TurnoutCount; t++){
-    //NOTE: must use analogread() for a6, a7 so use it for all
-    pbValue = analogRead(PBInputs[t]);
-    if(pbValue < AnalogMidpoint){
+    pbValue = digitalRead(PBInputs[t]);
+    if(pbValue < 1){
       if(OutputStates[t] == Thru){
         digitalWrite(CoilOutputs[t][1], RelayOn);
         delay(CoilOnDelay);
@@ -71,10 +73,7 @@ void loop() {
         digitalWrite(LEDOutputs[t][1], LOW);
         OutputStates[t] = Thru;
       }
-//      uint8_t c = 0;
-//      while (c < DebounceLimit){  // provide time to take finger off button
         delay(DebounceDelay);
-//      }
     }// end if PBInput
     pbValue = 1;
   }// End for
